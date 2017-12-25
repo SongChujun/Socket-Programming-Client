@@ -1,0 +1,71 @@
+#include "rdtrevwindow.h"
+#include "ui_rdtrevwindow.h"
+
+RdtRevWindow::RdtRevWindow(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::RdtRevWindow)
+{
+    file="C:/Users/92550/Desktop/file";
+    file.open(QIODevice::WriteOnly);
+    out=&file;
+    ui->setupUi(this);
+    SeverSocket=new QUdpSocket(this);
+    int port=5555;
+    bool res=SeverSocket->bind(port);
+    if(!res)
+    {
+        QMessageBox::warning(NULL, "warning", "bind failed!", QMessageBox::Yes, QMessageBox::Yes);
+    }      
+    connect(ServerSocket,SIGNAL(readyRead()),this,SLOT,dataReceived());
+    expect_num=0;
+}
+
+RdtRevWindow::~RdtRevWindow()
+{
+    delete ui;
+}
+RdtRevWindow::dataReceived()
+{
+    int flag=0;
+    QString qmsg;
+    string stdmsg;
+    if(flag==1)
+        return;
+    while(SeverSocket->hasPendingDatagrams())
+    {
+        QByteArray datagram;
+        datagram.resize(udpSocket->pendingDatagramSize());
+
+        SeverSocket->readDatagram(datagram.data(),datagram.size());
+        qmsg=datagram.data();
+    }
+    int revnum=(msg[0]-'0')*10+msg[1]-'0';
+    if(revnum==expect_num)
+    {
+        expect_num++;
+        if(qmsg.size()<1400)
+        {
+            flag=1;
+            stdmsg=qmsg.toStdString();
+            char buf*=StrToPc(stdmsg);
+            out.writeRawData(buf,1400);
+            qmsg="OK";
+            SeverSocket->write(qmsg.toLatin(),qmsg.length(),QHostAddress::Broadcast,5555);
+            
+        }
+        else
+        {
+            char buf*=StrToPc(stdmsg);
+            out.writeRawData(buf,1400);
+        }
+    }
+    else
+    {
+        int b1=expect_num%10+'0';
+        int b2=expect_num/10+'0';
+        qmsg;
+        qmsg.push_back(b2);
+        qmsg.push_back(b1);
+        SeverSocket->write(qmsg.toLatin(),qmsg.length(),QHostAddress::Broadcast,5555);
+    }
+}

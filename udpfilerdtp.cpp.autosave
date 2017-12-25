@@ -1,0 +1,157 @@
+#include "udpfilerdtp.h"
+#include "ui_udpfilerdtp.h"
+
+UdpFileRDTP::UdpFileRDTP(QWidget *parent,QFile& infile) :
+    QDialog(parent),
+    ui(new Ui::UdpFileRDTP)
+{
+    ui->setupUi(this);
+    udpSocket=new QUdpSocket<this>;
+    connect(udpSocket,SIGNAL(readyRead()),this,SLOT(dataReceived()));
+    WindowSizeN=10;
+    NumberSpace=20;
+    file=infile;
+    file.open(QIODevice::ReadOnly)；
+    in=&file;
+    buf=new char[1400];
+    port=5555;
+    timer=new QTimer(this);
+    connect(timer,SIGNAL(timeout()),this,SLOT(timeout()));
+}
+
+UdpFileRDTP::~UdpFileRDTP()
+{
+    delete ui;
+}
+UdpFileRDTP::dataReceived()
+{
+    int flag=0;
+    if(flag==1)
+        return;
+    string msg;
+    QString Qmsg;
+    while(udpSocket->hasPendingDatagrams())
+    {
+        QByteArray datagram;
+        datagram.resize(udpSocket->pendingDatagramSize());
+        udpSocket->readDatagram(datagram.data(),datagram.size());
+        msg=datagram.data();
+    }
+    string tmp=msg::toStdString();
+    if(tmp=="OK")
+    {
+        flag=1;
+        QMessageBox::information(this,tr("error"),tr("Mission Complete!"));
+    }
+    int ACKNUM=(tmp[0]-'0')*10+(tmp[1]-'0');
+    int i=0;
+    string msg;
+    if(ACKNUM>=send_base)
+    {
+        send_base=ACKNUM;
+        int length=WindowSizeN-(ACKNUM-send_base+1);
+        if(ACKNUM<send_base)
+        {
+            length=send_base-ACKNUM-1;
+        }
+        for(i=0;i<length;i++)
+        {
+            if(i==0)
+            {
+                timer->statr(100);
+            }
+            char b1=nextseqnum%10+'0';
+            char b2=nextseqnum/10+'0';
+            int res=in.readRawData(buf,1400);
+            {
+                if(res==-1)
+                    QDebug("Error! <1400");
+            }
+            msg=buf;
+            window.erase(0);
+            window.push_back(msg);
+            msg.push_back(b2);
+            msg.push_back(b1);
+            nextseqnum=(nextseqnum+1)%NumberSpace;
+            Qmsg=QString::fromStdString(msg);
+            udpSocket->write(Qmsg.toLatin1(),Qmsg.length(),QHostAddress::Broadcast,port);
+            if(res<1400)
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        int beginnum=send_base;
+        for(i=0;i<WindowSizeN;i++)
+        {
+            if(i==0)
+            {
+                timer->statr(100);
+            }
+            char b1=beginnum%10+'0';
+            char b2=beginnum/10+'0';
+            msg=window[i];
+            msg.push_back(b2);
+            msg.push_back(b1);
+            beginnum=(beginnum+1)%NumberSpace;
+            Qmsg=QString::fromStdString(msg);
+            udpSocket->write(Qmsg.toLatin1(),Qmsg.length(),QHostAddress::Broadcast,port);
+        }
+    }
+UdpFileRDTP::RdtSendFile()
+{
+        res=in.readRawData(buf,1400);
+        if(res==-1)
+        {
+            QDebug("read error!");
+        }
+        send_base=0;
+        nextseqnum=10;
+        for(int i=0;i<10;i++)
+        {
+            int res=in.readRawData(buf,1400);
+            if(res==-1)
+            {
+                QDebug("<1400");
+            }
+            if(res<1400)
+            {
+                break;
+            }
+            string tmp=buf;
+            window.push_back(tmp);
+        }
+        for(int i=0;i<10;i++)
+        {
+            if(i==0)
+            {
+                timer->start(100);
+            }
+            QString qmsg;
+            qmsg.append('0');
+            qmsg.append('0'+i);
+            qmsg.append(QString::fromStdString(window[i]));
+            udpSocket->write(qmsg.toLatin1(),qmsg.size(),QHostAddress::Broadcast,port);
+        }
+}
+UdpFileRDTP::timeout()
+{
+    int beginnum=send_base;
+    for(i=0;i<WindowSizeN;i++)
+    {
+        if(i==0)
+        {
+            timer->statr(100);
+        }
+        char b1=beginnum%10+'0';
+        char b2=beginnum/10+'0';
+        msg=window[i];
+        msg.push_back(b2);
+        msg.push_back(b1);
+        beginnum=(beginnum+1)%NumberSpace;
+        Qmsg=QString::fromStdString(msg);
+        udpSocket->write(Qmsg.toLatin1(),Qmsg.length(),QHostAddress::Broadcast,port);
+    }
+}

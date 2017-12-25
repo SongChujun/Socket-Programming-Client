@@ -1,0 +1,26 @@
+#ifndef RDTREVWINDOW_H
+#define RDTREVWINDOW_H
+#include <QDialog>
+#include "globalvar.h"
+namespace Ui {
+class RdtRevWindow;
+}
+
+class RdtRevWindow : public QDialog
+{
+    Q_OBJECT
+
+public:
+    QDataStream out;
+    QUdpSocket* SeverSocket;
+    explicit RdtRevWindow(QWidget *parent = 0);
+    ~RdtRevWindow();
+    QFile file;
+    int expect_num;
+public slots:
+    void dataReceived();
+private:
+    Ui::RdtRevWindow *ui;
+};
+
+#endif // RDTREVWINDOW_H

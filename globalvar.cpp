@@ -1,0 +1,40 @@
+#include "globalvar.h"
+using namespace std;
+map<string, vector<string>> friendmessage;
+map<string, chtwindow*> UserToChtwindow;
+QString name;
+int StrToInt(string& pc)
+{
+	int res = 0;
+	int i = 0;
+	for (i = pc.size(); i >= 0; i--)
+	{
+		if (!((pc[i] >= '0') && (pc[i] <= '9')))
+		{
+			return -1;
+		}
+		res = res + (pc[i] - '0')*pow(10, pc.size() - 1 - i);
+	}
+	return res;
+}
+int BitsToInt(string& pc)
+{
+	int res = 0;
+	int i = 0;
+	for (i = pc.size(); i >= 0; i--)
+	{
+		if ((pc[i] != '0') && (pc[i] != '1'))
+		{
+			return -1;
+		}
+		res = res + (pc[i] - '0')*pow(10, pc.size() - 1 - i);
+	}
+	return res;
+}
+void StrToPc(char* result, string& s)
+{
+	for (int i = 1; i < s.length() + 1; i++)
+	{
+		*(result + i) = s[i];
+	}
+}
